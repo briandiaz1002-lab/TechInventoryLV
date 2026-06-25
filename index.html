@@ -237,6 +237,7 @@ let comprasTotalPages = 1;
 // ========== SUPABASE CONFIGURACIÓN ==========
 const SUPABASE_URL = 'https://iizljgpzutiisheesafy.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpemxqZ3B6dXRpaXNoZWVzYWZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMjI1MDgsImV4cCI6MjA5Nzg5ODUwOH0.ltkHxDuW5OrCQr_KeNV6XkyYDvSRJKoul8b11BceIb8';
+const SUPABASE_EVENT_ID = 1; // ID del evento en Supabase (cambiar si es diferente)
 let supabase = null; // Se inicializa después
 let realtimeSubscription = null; // Para desuscribirse
 let currentDeviceId = null; // ID único de este dispositivo
@@ -1199,9 +1200,18 @@ async function openPurchaseForm(existing){
     const totalQuantity = items.reduce((s,it)=> s+it.qty, 0);
     const totalAmount = roundMoney(items.reduce((s,it)=> s+(it.qty*it.price), 0));
 
+    // ========== NUEVO: GENERAR ID ÚNICO Y VINCULAR A EVENTO ==========
     const record = isEdit
       ? { ...existing }
-      : { status:'pending', enteredCount:0, enteredAt:null, createdAt: Date.now() };
+      : { 
+          id: `purchase_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,
+          eventId: SUPABASE_EVENT_ID,  // NUEVO: vincular al evento
+          status:'pending', 
+          enteredCount:0, 
+          enteredAt:null, 
+          createdAt: Date.now() 
+        };
+    // ========== FIN GENERACIÓN ID ==========
 
     record.buyerName = buyerName;
     record.ci = ci;
@@ -1211,6 +1221,7 @@ async function openPurchaseForm(existing){
     record.items = items;
     record.totalQuantity = totalQuantity;
     record.totalAmount = totalAmount;
+    record.eventId = SUPABASE_EVENT_ID;  // NUEVO: asegurar que eventId está siempre presente
 
     if(UNIQUE_CI){
       const purchases = await getAll('purchases');
