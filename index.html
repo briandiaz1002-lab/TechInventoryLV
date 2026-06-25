@@ -8,9 +8,6 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<!-- ========== SUPABASE SDK (defer: carga sin bloquear) ========== -->
-<script async defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- ========== FIN SUPABASE SDK ========== -->
 <style>
   :root{
     --bg: #0B0E1A;
@@ -452,14 +449,37 @@ function hideFormModal(){
 
 // Inicializar Supabase (con fallback si no está disponible)
 async function initSupabase(){
-  // Verificar si el SDK se cargó correctamente
-  if(!window.supabase){
-    console.warn('⚠️ Supabase SDK no disponible (offline o CDN caído). Continuando en modo offline-only.');
-    isOnline = false;
-    return;
-  }
-  
   if(supabase) return; // Ya inicializado
+  
+  // Si no hay SDK cargado, intentar cargar dinámicamente
+  if(!window.supabase){
+    try{
+      // Cargar SDK de forma dinámica
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/+esm';
+        script.type = 'module';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      
+      // Esperar a que supabase esté disponible
+      let retries = 0;
+      while(!window.supabase && retries < 20){
+        await new Promise(r => setTimeout(r, 100));
+        retries++;
+      }
+      
+      if(!window.supabase){
+        throw new Error('Supabase SDK no cargó correctamente');
+      }
+    }catch(err){
+      console.warn('⚠️ No se pudo cargar SDK Supabase:', err);
+      console.log('Continuando en modo offline-only');
+      return;
+    }
+  }
   
   try{
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
