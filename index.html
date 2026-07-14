@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TechInventory — Gestión de Inventario</title>
-    <link rel="manifest" href="manifest.webmanifest">
+    <!-- El manifest se inyecta solo bajo http/https (en file:// el navegador lo bloquea por CORS) -->
     <meta name="theme-color" content="#0f2149">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -8216,11 +8216,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyModuleVisibility();
         showSection('dashboard');
 
-        // Registrar Service Worker (PWA offline)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW no registrado:', err));
-            });
+        // Registrar Service Worker + manifest (solo bajo http/https; en file:// el navegador los bloquea por CORS)
+        if (location.protocol === 'http:' || location.protocol === 'https:') {
+            const m = document.createElement('link');
+            m.rel = 'manifest'; m.href = 'manifest.webmanifest';
+            document.head.appendChild(m);
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW no registrado:', err));
+                });
+            }
         }
     } catch(err) {
         console.error('Error al inicializar:', err);
